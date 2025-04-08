@@ -1,0 +1,17 @@
+version: '3.8'
+
+services:
+  db:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_USER: macrotracker
+      POSTGRES_PASSWORD: macrotracker
+      POSTGRES_DB: macrotracker
+    ports:
+      - "5434:5432"
+    volumes:
+      - ./internal/database/schema.sql:/docker-entrypoint-initdb.d/schema.sql
+      - postgres_data:/var/lib/postgresql/data
+
+volumes:
+  postgres_data:
