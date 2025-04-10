@@ -20,13 +20,14 @@ services:
       context: .
       dockerfile: Dockerfile.backend
     ports:
-      - "8080:8080"
+      - "8081:8081"
     environment:
       - DB_HOST=db
       - DB_PORT=5432
       - DB_USER=postgres
       - DB_PASSWORD=postgres
       - DB_NAME=macro_tracker
+      - FDC_API_KEY=VkIvae2DDaLi0qdVhHgk0vhG216IgfDlqBGgDOwU
     depends_on:
       - db
     networks:
@@ -39,7 +40,10 @@ services:
     ports:
       - "5173:5173"
     environment:
-      - VITE_API_URL=http://localhost:8080
+      - VITE_API_URL=http://backend:8081
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
     depends_on:
       - backend
     networks:

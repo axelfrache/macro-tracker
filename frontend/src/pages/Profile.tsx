@@ -8,33 +8,25 @@ import {
 } from '@mui/material';
 
 import { User } from '../types';
-import { getUser, updateUser } from '../api';
-
-
+import { updateUser } from '../api';
+import { useUser } from '../context/UserContext';
 
 export const Profile = () => {
+  const { currentUser, currentUserId, setCurrentUserId } = useUser();
   const [user, setUser] = useState<User | null>(null);
   const [editing, setEditing] = useState(false);
-  const userId = 1; // À remplacer par l'ID de l'utilisateur connecté
 
   useEffect(() => {
-    const fetchUser = async () => {
-      try {
-        const response = await getUser(userId);
-        setUser(response.data);
-      } catch (error) {
-        console.error('Erreur lors de la récupération du profil:', error);
-      }
-    };
-
-    fetchUser();
-  }, [userId]);
+    if (currentUser) {
+      setUser(currentUser);
+    }
+  }, [currentUser]);
 
   const handleSave = async () => {
-    if (!user) return;
+    if (!user || !currentUserId) return;
 
     try {
-      await updateUser(userId, user);
+      await updateUser(currentUserId, user);
       setEditing(false);
     } catch (error) {
       console.error('Erreur lors de la mise à jour du profil:', error);
@@ -103,9 +95,20 @@ export const Profile = () => {
               </Button>
             </>
           ) : (
-            <Button variant="contained" onClick={() => setEditing(true)}>
-              Modifier
-            </Button>
+            <Box sx={{ display: 'flex', gap: 2 }}>
+              <Button variant="contained" onClick={() => setEditing(true)}>
+                Modifier
+              </Button>
+              <Button 
+                variant="outlined" 
+                color="secondary" 
+                onClick={() => {
+                  setCurrentUserId(null);
+                }}
+              >
+                Déconnexion
+              </Button>
+            </Box>
           )}
         </Box>
       </Paper>

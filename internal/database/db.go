@@ -252,3 +252,45 @@ func (db *DB) AddMealPlanItem(item *MealPlanItem) error {
 		item.Fiber,
 	).Scan(&item.ID)
 }
+
+// UpdateMealPlanItemMealType met à jour le type de repas d'un élément d'un meal plan
+func (db *DB) UpdateMealPlanItemMealType(itemID int, mealType MealType) error {
+	query := `UPDATE meal_plan_items SET meal_type = $1 WHERE id = $2`
+	
+	result, err := db.Exec(query, mealType, itemID)
+	if err != nil {
+		return err
+	}
+	
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return err
+	}
+	
+	if rowsAffected == 0 {
+		return sql.ErrNoRows
+	}
+	
+	return nil
+}
+
+// DeleteMealPlanItem supprime un élément d'un meal plan par son ID
+func (db *DB) DeleteMealPlanItem(itemID int) error {
+	query := `DELETE FROM meal_plan_items WHERE id = $1`
+	
+	result, err := db.Exec(query, itemID)
+	if err != nil {
+		return err
+	}
+	
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return err
+	}
+	
+	if rowsAffected == 0 {
+		return sql.ErrNoRows
+	}
+	
+	return nil
+}
