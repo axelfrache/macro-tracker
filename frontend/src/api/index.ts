@@ -11,7 +11,7 @@ console.log('Using API URL:', apiBaseUrl);
 
 const api = axios.create({
   baseURL: apiBaseUrl,
-  timeout: 10000, // Set a reasonable timeout
+  timeout: 10000,
 });
 
 api.interceptors.request.use(
@@ -83,7 +83,7 @@ export const getUser = async (id: number): Promise<AxiosResponse<User>> => {
   }
   
   const response = await api.get<User>(`/users/${id}`);
-  cache.set(cacheKey, response, 300000); // Cache for 5 minutes
+  cache.set(cacheKey, response, 300000);
   return response;
 };
 
@@ -108,7 +108,7 @@ export const getMealPlans = async (userId: number): Promise<AxiosResponse<MealPl
   }
   
   const response = await api.get<MealPlan[]>(`/users/${userId}/meal-plans`);
-  cache.set(cacheKey, response, 60000); // Cache for 1 minute
+  cache.set(cacheKey, response, 60000);
   return response;
 };
 

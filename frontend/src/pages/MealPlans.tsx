@@ -55,9 +55,7 @@ export const MealPlans = () => {
 
   useEffect(() => {
     fetchMealPlans();
-    // Nettoyer l'effet lors du démontage du composant
     return () => {
-      // Annuler les requêtes en cours si nécessaire
     };
   }, [fetchMealPlans]);
 
