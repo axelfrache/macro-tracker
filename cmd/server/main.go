@@ -35,15 +35,11 @@ func main() {
 		log.Fatalf("Erreur de connexion à la base de données: %v\n", err)
 	}
 
-	// Initialiser le client FDC API
-	// Utiliser une clé API de développement par défaut si aucune n'est fournie
-	// Pour la production, il faudra configurer une vraie clé API via les variables d'environnement
 	fdcApiKey := getEnv("FDC_API_KEY", "DEMO_KEY")
 	fdcClient = fdc.NewClient(fdcApiKey)
 
 	r := gin.Default()
 
-	// Configuration CORS pour permettre les requêtes depuis le frontend
 	r.Use(cors.New(cors.Config{
 		AllowOrigins:     []string{"*"}, // Accepter toutes les origines en développement
 		AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
@@ -56,12 +52,10 @@ func main() {
 	// Routes API
 	api := r.Group("")
 	{
-		// Users
 		api.GET("/users/:id", handleGetUser)
 		api.POST("/users", handleCreateUser)
 		api.PUT("/users/:id", handleUpdateUser)
 
-		// Meal Plans
 		api.GET("/users/:id/meal-plans", handleGetMealPlans)
 		api.POST("/users/:id/meal-plans", handleCreateMealPlan)
 		api.POST("/meal-plans/:planId/items", handleAddMealPlanItem)
@@ -69,7 +63,6 @@ func main() {
 		api.PUT("/meal-plan-items/:itemId/meal-type", handleUpdateMealPlanItem)
 		api.DELETE("/meal-plan-items/:itemId", handleDeleteMealPlanItem)
 
-		// Food Search
 		api.GET("/food/search", handleSearchFood)
 	}
 
@@ -126,14 +119,12 @@ func handleUpdateUser(c *gin.Context) {
 		return
 	}
 
-	// Récupérer l'utilisateur existant
 	user, err := db.GetUser(id)
 	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Utilisateur non trouvé"})
 		return
 	}
 
-	// Mettre à jour les champs modifiés
 	if userUpdate.Name != "" {
 		user.Name = userUpdate.Name
 	}
@@ -147,9 +138,6 @@ func handleUpdateUser(c *gin.Context) {
 		user.Height = userUpdate.Height
 	}
 
-	// Mettre à jour l'utilisateur dans la base de données
-	// Note: Vous devrez ajouter une méthode UpdateUser à votre package database
-	// Pour l'instant, nous renvoyons simplement l'utilisateur mis à jour
 	c.JSON(http.StatusOK, user)
 }
 
@@ -167,7 +155,6 @@ func handleGetMealPlans(c *gin.Context) {
 		return
 	}
 
-	// Pour chaque plan, récupérer les items associés
 	result := make([]map[string]interface{}, 0, len(plans))
 	for _, plan := range plans {
 		items, err := db.GetMealPlanItems(plan.ID)
@@ -219,7 +206,6 @@ func handleCreateMealPlan(c *gin.Context) {
 		return
 	}
 
-	// Renvoyer le plan créé avec un tableau d'items vide
 	response := map[string]interface{}{
 		"id":          plan.ID,
 		"user_id":     plan.UserID,
@@ -239,7 +225,6 @@ func handleAddMealPlanItem(c *gin.Context) {
 		return
 	}
 
-	// Utiliser une structure intermédiaire pour éviter les problèmes de désérialisation
 	type ItemRequest struct {
 		MealType  string  `json:"meal_type"`
 		FoodID    int     `json:"food_id"`
@@ -258,10 +243,8 @@ func handleAddMealPlanItem(c *gin.Context) {
 		return
 	}
 
-	// Log pour déboguer
 	fmt.Printf("Type de repas reçu: %s\n", itemReq.MealType)
 
-	// Créer l'objet MealPlanItem avec les bonnes valeurs
 	item := database.MealPlanItem{
 		MealPlanID: planID,
 		MealType:   database.MealType(itemReq.MealType), // Conversion explicite
@@ -292,7 +275,6 @@ func handleUpdateMealPlanItem(c *gin.Context) {
 		return
 	}
 
-	// Utiliser une structure intermédiaire pour éviter les problèmes de désérialisation
 	type ItemRequest struct {
 		MealType string `json:"meal_type"`
 	}
@@ -303,10 +285,8 @@ func handleUpdateMealPlanItem(c *gin.Context) {
 		return
 	}
 
-	// Log pour déboguer
 	fmt.Printf("Mise à jour du type de repas: %s pour l'élément %d\n", itemReq.MealType, itemID)
 
-	// Mettre à jour le type de repas dans la base de données
 	err = db.UpdateMealPlanItemMealType(itemID, database.MealType(itemReq.MealType))
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
@@ -353,7 +333,6 @@ func handleSearchFood(c *gin.Context) {
 	c.JSON(http.StatusOK, result.Foods)
 }
 
-// Fonction utilitaire pour récupérer les variables d'environnement avec une valeur par défaut
 func getEnv(key, defaultValue string) string {
 	value := os.Getenv(key)
 	if value == "" {

@@ -43,7 +43,6 @@ func (f *Food) GetNutrientValue(nutrientIDs ...int) float64 {
 }
 
 func (f *Food) GetMacros() (proteins, carbs, fats, calories, fiber float64) {
-	// IDs des nutriments selon la documentation FDC
 	const (
 		ProteinID  = 1003 // Protein
 		CarbID     = 1005 // Carbohydrates
@@ -73,7 +72,7 @@ func (c *Client) SearchFoods(query string) (*SearchResponse, error) {
 	params := url.Values{}
 	params.Add("api_key", c.apiKey)
 	params.Add("query", query)
-	params.Add("dataType", "Foundation,SR Legacy") // Filtrer pour obtenir des données de qualité
+	params.Add("dataType", "Foundation,SR Legacy")
 	
 	resp, err := c.client.Get(baseURL + "?" + params.Encode())
 	if err != nil {
@@ -99,7 +98,7 @@ func (c *Client) GetFood(fdcID int) (*Food, error) {
 	
 	params := url.Values{}
 	params.Add("api_key", c.apiKey)
-	params.Add("format", "full") // Obtenir toutes les informations nutritionnelles
+	params.Add("format", "full")
 	
 	resp, err := c.client.Get(baseURL + "?" + params.Encode())
 	if err != nil {
