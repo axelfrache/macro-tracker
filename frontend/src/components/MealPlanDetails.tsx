@@ -40,7 +40,6 @@ export const MealPlanDetails = ({ mealPlan, onUpdate }: MealPlanDetailsProps) =>
   const [selectedFood, setSelectedFood] = useState<any | null>(null);
   const [mealType, setMealType] = useState('breakfast');
   const [amount, setAmount] = useState('100');
-  const [loading, setLoading] = useState(false);
   const [searchLoading, setSearchLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [deletingItemId, setDeletingItemId] = useState<number | null>(null);
@@ -110,21 +109,17 @@ export const MealPlanDetails = ({ mealPlan, onUpdate }: MealPlanDetailsProps) =>
       return;
     }
 
-    setLoading(true);
     setError(null);
     
     try {
-      // Calculer les macros en fonction de la quantité
       const { fdcId, description, foodNutrients } = selectedFood;
       
-      // Extraire les nutriments
       const proteins = foodNutrients.find((n: any) => n.nutrientName === 'Protein')?.value || 0;
       const carbs = foodNutrients.find((n: any) => n.nutrientName === 'Carbohydrate, by difference')?.value || 0;
       const fats = foodNutrients.find((n: any) => n.nutrientName === 'Total lipid (fat)')?.value || 0;
       const calories = foodNutrients.find((n: any) => n.nutrientName === 'Energy')?.value || 0;
       const fiber = foodNutrients.find((n: any) => n.nutrientName === 'Fiber, total dietary')?.value || 0;
       
-      // Calculer les macros pour la quantité donnée (les valeurs sont pour 100g)
       const multiplier = amountValue / 100.0;
       
       const newItem: Omit<MealPlanItem, 'id' | 'meal_plan_id'> = {
@@ -139,32 +134,27 @@ export const MealPlanDetails = ({ mealPlan, onUpdate }: MealPlanDetailsProps) =>
         fiber: fiber * multiplier,
       };
       
-      await addMealPlanItem(mealPlan.id, newItem);
       setOpen(false);
       resetForm();
+      
+      await addMealPlanItem(mealPlan.id, newItem);
       onUpdate();
     } catch (error) {
       console.error('Erreur lors de l\'ajout de l\'aliment:', error);
       setError('Impossible d\'ajouter l\'aliment. Veuillez réessayer.');
-    } finally {
-      setLoading(false);
     }
   };
   
-  // Fonction pour supprimer un élément du meal plan
-  // Fonction pour ouvrir le menu d'édition du type de repas
   const handleOpenEditMenu = (event: React.MouseEvent<HTMLElement>, itemId: number) => {
     setEditAnchorEl(event.currentTarget);
     setEditingItemId(itemId);
   };
 
-  // Fonction pour fermer le menu d'édition
   const handleCloseEditMenu = () => {
     setEditAnchorEl(null);
     setEditingItemId(null);
   };
-
-  // Fonction pour mettre à jour le type de repas d'un élément
+  
   const handleUpdateMealType = async (itemId: number, newMealType: string) => {
     try {
       setUpdatingItemId(itemId);
@@ -201,25 +191,20 @@ export const MealPlanDetails = ({ mealPlan, onUpdate }: MealPlanDetailsProps) =>
     setError(null);
   };
 
-  // Grouper les items par type de repas et les trier selon l'ordre des types de repas
   const itemsByMealType: Record<string, MealPlanItem[]> = {};
   
-  // Initialiser les types de repas dans l'ordre
   mealTypeOptions.forEach(option => {
     itemsByMealType[option.value] = [];
   });
   
-  // Ajouter les items à leurs types de repas respectifs
   mealPlan.items?.forEach(item => {
     if (itemsByMealType[item.meal_type]) {
       itemsByMealType[item.meal_type].push(item);
     } else {
-      // Au cas où il y aurait un type de repas non reconnu
       itemsByMealType[item.meal_type] = [item];
     }
   });
 
-  // Calculer les macros totaux
   const totalMacros = mealPlan.items?.reduce(
     (acc, item) => {
       return {
@@ -411,7 +396,7 @@ export const MealPlanDetails = ({ mealPlan, onUpdate }: MealPlanDetailsProps) =>
       
       <Dialog 
         open={open} 
-        onClose={() => !loading && setOpen(false)}
+        onClose={() => setOpen(false)}
         fullWidth
         maxWidth="md"
         PaperProps={{
@@ -519,13 +504,13 @@ export const MealPlanDetails = ({ mealPlan, onUpdate }: MealPlanDetailsProps) =>
           )}
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setOpen(false)} disabled={loading}>Annuler</Button>
+          <Button onClick={() => setOpen(false)}>Annuler</Button>
           <Button 
             onClick={handleAddItem} 
             variant="contained" 
-            disabled={loading || !selectedFood}
+            disabled={!selectedFood}
           >
-            {loading ? <CircularProgress size={24} /> : 'Ajouter'}
+            Ajouter
           </Button>
         </DialogActions>
       </Dialog>
