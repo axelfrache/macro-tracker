@@ -34,24 +34,16 @@ export const Login = () => {
   
   const navigate = useNavigate();
 
-  // Rediriger si déjà connecté
   useEffect(() => {
     if (currentUserId) {
       navigate('/');
     }
   }, [currentUserId, navigate]);
 
-  // Charger la liste des utilisateurs existants
   useEffect(() => {
     const fetchUsers = async () => {
       setLoadingUsers(true);
       try {
-        // Cette API n'existe pas encore, il faudrait l'implémenter côté backend
-        // Pour l'instant, on simule avec des utilisateurs statiques
-        // const response = await axios.get('/users');
-        // setExistingUsers(response.data);
-        
-        // Simulation d'utilisateurs pour la démo
         setExistingUsers([
           { id: 1, name: "Utilisateur 1" },
           { id: 2, name: "Nouveau" }
