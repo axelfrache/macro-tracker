@@ -27,7 +27,7 @@ func main() {
 	}
 
 	// Initialiser la base de données
-	connStr := "postgres://macrotracker:macrotracker@localhost:5434/macrotracker?sslmode=disable"
+	connStr := "postgres://postgres:postgres@localhost:5434/macro_tracker?sslmode=disable"
 	db, err = database.NewDB(connStr)
 	if err != nil {
 		fmt.Printf("Erreur de connexion à la base de données: %v\n", err)
