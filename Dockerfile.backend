@@ -1,9 +1,27 @@
 FROM golang:1.23-rc-alpine3.19
 WORKDIR /app
-RUN apk add --no-cache gcc musl-dev
+
+# Installation des dépendances nécessaires
+RUN apk add --no-cache gcc musl-dev postgresql-client
+
 COPY go.mod go.sum ./
 RUN go mod download
 COPY . .
 RUN go build -o server ./cmd/server
+RUN go build -o cli ./cmd/cli
+
+# Création du script d'attente
+COPY <<EOF /wait-for-postgres.sh
+#!/bin/sh
+until pg_isready -h db -p 5432 -U postgres; do
+  echo "Waiting for PostgreSQL..."
+  sleep 1
+done
+echo "PostgreSQL is ready"
+EOF
+
+RUN chmod +x /wait-for-postgres.sh
+
 EXPOSE 8080
-CMD ["./server"]
+
+CMD ["/bin/sh", "-c", "/wait-for-postgres.sh && ./server"]

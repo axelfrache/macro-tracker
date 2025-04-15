@@ -15,31 +15,27 @@ import (
 
 var (
 	currentUser *database.User
-	db         *database.DB
+	db          *database.DB
 )
 
 func main() {
-	// Charger la configuration
 	cfg, err := config.Load()
 	if err != nil {
 		fmt.Printf("Erreur de configuration: %v\n", err)
 		os.Exit(1)
 	}
 
-	// Initialiser la base de données
-	connStr := "postgres://postgres:postgres@localhost:5434/macro_tracker?sslmode=disable"
+	connStr := "postgres://postgres:postgres@db:5432/macro_tracker?sslmode=disable"
 	db, err = database.NewDB(connStr)
 	if err != nil {
 		fmt.Printf("Erreur de connexion à la base de données: %v\n", err)
 		os.Exit(1)
 	}
 
-	// Initialiser le client FDC
 	fdcClient := fdc.NewClient(cfg.FDCApiKey)
 
 	fmt.Println("Bienvenue dans Macro-Tracker!")
-	
-	// Demander l'ID utilisateur ou créer un nouvel utilisateur
+
 	currentUser = setupUser()
 
 	fmt.Println("\nCommandes disponibles:")
@@ -173,9 +169,9 @@ func handleAdd(client *fdc.Client, args []string) {
 	mealType := args[2]
 	validMealTypes := map[string]bool{
 		"petit-dejeuner": true,
-		"dejeuner":      true,
-		"diner":         true,
-		"collation":     true,
+		"dejeuner":       true,
+		"diner":          true,
+		"collation":      true,
 	}
 
 	if !validMealTypes[mealType] {
@@ -192,17 +188,17 @@ func handleAdd(client *fdc.Client, args []string) {
 	proteins, carbs, fats, calories, fiber := food.GetMacros()
 
 	meal := &database.Meal{
-		UserID:    currentUser.ID,
-		MealType:  mealType,
-		MealDate:  time.Now(),
-		FoodID:    fdcID,
-		FoodName:  food.Description,
-		Amount:    amount,
-		Proteins:  proteins * amount / 100,
-		Carbs:     carbs * amount / 100,
-		Fats:      fats * amount / 100,
-		Calories:  calories * amount / 100,
-		Fiber:     fiber * amount / 100,
+		UserID:   currentUser.ID,
+		MealType: mealType,
+		MealDate: time.Now(),
+		FoodID:   fdcID,
+		FoodName: food.Description,
+		Amount:   amount,
+		Proteins: proteins * amount / 100,
+		Carbs:    carbs * amount / 100,
+		Fats:     fats * amount / 100,
+		Calories: calories * amount / 100,
+		Fiber:    fiber * amount / 100,
 	}
 
 	err = db.AddMeal(meal)
@@ -216,7 +212,7 @@ func handleAdd(client *fdc.Client, args []string) {
 
 func handleReport() {
 	today := time.Now()
-	
+
 	meals, err := db.GetDailyMeals(currentUser.ID, today)
 	if err != nil {
 		fmt.Printf("Erreur lors de la récupération des repas: %v\n", err)
@@ -255,7 +251,6 @@ func handlePlanCommand(reader *bufio.Reader, db *database.DB, fdcClient *fdc.Cli
 
 	switch option {
 	case "1":
-		// Créer une journée type
 		fmt.Print("Nom de la journée type : ")
 		name, _ := reader.ReadString('\n')
 		name = strings.TrimSpace(name)
@@ -279,7 +274,6 @@ func handlePlanCommand(reader *bufio.Reader, db *database.DB, fdcClient *fdc.Cli
 		fmt.Printf("Journée type '%s' créée avec succès !\n", name)
 
 	case "2":
-		// Voir les journées types
 		plans, err := db.GetMealPlans(user.ID)
 		if err != nil {
 			fmt.Printf("Erreur lors de la récupération des journées types : %v\n", err)
@@ -296,7 +290,6 @@ func handlePlanCommand(reader *bufio.Reader, db *database.DB, fdcClient *fdc.Cli
 			fmt.Printf("\n%d. %s\n", plan.ID, plan.Name)
 			fmt.Printf("   Description : %s\n", plan.Description)
 
-			// Afficher les repas de la journée type
 			items, err := db.GetMealPlanItems(plan.ID)
 			if err != nil {
 				fmt.Printf("Erreur lors de la récupération des repas : %v\n", err)
@@ -312,7 +305,6 @@ func handlePlanCommand(reader *bufio.Reader, db *database.DB, fdcClient *fdc.Cli
 		}
 
 	case "3":
-		// Ajouter un repas à une journée type
 		plans, err := db.GetMealPlans(user.ID)
 		if err != nil {
 			fmt.Printf("Erreur lors de la récupération des journées types : %v\n", err)
@@ -338,7 +330,6 @@ func handlePlanCommand(reader *bufio.Reader, db *database.DB, fdcClient *fdc.Cli
 			return
 		}
 
-		// Vérifier que la journée type existe et appartient à l'utilisateur
 		var selectedPlan *database.MealPlan
 		for _, plan := range plans {
 			if plan.ID == planID {
@@ -352,7 +343,6 @@ func handlePlanCommand(reader *bufio.Reader, db *database.DB, fdcClient *fdc.Cli
 			return
 		}
 
-		// Choisir le type de repas
 		fmt.Println("\nTypes de repas disponibles :")
 		fmt.Println("1. Petit-déjeuner (breakfast)")
 		fmt.Println("2. Collation 1 (snack1)")
@@ -381,7 +371,6 @@ func handlePlanCommand(reader *bufio.Reader, db *database.DB, fdcClient *fdc.Cli
 			return
 		}
 
-		// Rechercher un aliment
 		fmt.Print("\nRechercher un aliment : ")
 		query, _ := reader.ReadString('\n')
 		query = strings.TrimSpace(query)
@@ -413,7 +402,6 @@ func handlePlanCommand(reader *bufio.Reader, db *database.DB, fdcClient *fdc.Cli
 
 		selectedFood := result.Foods[foodIndex-1]
 
-		// Demander la quantité
 		fmt.Print("Quantité (en grammes) : ")
 		amountStr, _ := reader.ReadString('\n')
 		amountStr = strings.TrimSpace(amountStr)
@@ -423,11 +411,9 @@ func handlePlanCommand(reader *bufio.Reader, db *database.DB, fdcClient *fdc.Cli
 			return
 		}
 
-		// Calculer les macronutriments pour la quantité donnée
 		proteins, carbs, fats, calories, fiber := selectedFood.GetMacros()
 		multiplier := amount / 100.0
 
-		// Créer l'item de la journée type
 		item := &database.MealPlanItem{
 			MealPlanID: planID,
 			MealType:   mealType,
