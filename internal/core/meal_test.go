@@ -19,26 +19,26 @@ func TestCalculerTotalNutriments(t *testing.T) {
 				Aliments: []Aliment{
 					{
 						Nom:       "Poulet",
-						Quantite:  150.0, // 150g
-						Calories:  165.0, // pour 100g
-						Proteines: 31.0,  // pour 100g
-						Glucides:  0.0,   // pour 100g
-						Lipides:   3.6,   // pour 100g
+						Quantite:  150.0,
+						Calories:  165.0,
+						Proteines: 31.0,
+						Glucides:  0.0,
+						Lipides:   3.6,
 					},
 					{
 						Nom:       "Riz",
-						Quantite:  100.0, // 100g
-						Calories:  130.0, // pour 100g
-						Proteines: 2.7,   // pour 100g
-						Glucides:  28.0,  // pour 100g
-						Lipides:   0.3,   // pour 100g
+						Quantite:  100.0,
+						Calories:  130.0,
+						Proteines: 2.7,
+						Glucides:  28.0,
+						Lipides:   0.3,
 					},
 				},
 			},
-			expectedCalories:  377.5, // (165 * 1.5) + (130 * 1)
-			expectedProteines: 49.2,  // (31 * 1.5) + (2.7 * 1)
-			expectedGlucides:  28.0,  // (0 * 1.5) + (28 * 1)
-			expectedLipides:   5.7,   // (3.6 * 1.5) + (0.3 * 1)
+			expectedCalories:  377.5,
+			expectedProteines: 49.2,
+			expectedGlucides:  28.0,
+			expectedLipides:   5.7,
 		},
 		{
 			name: "Repas vide",

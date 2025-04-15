@@ -9,19 +9,18 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/gin-contrib/cors"
-	"github.com/gin-gonic/gin"
 	"github.com/frachea/macro-tracker/internal/database"
 	"github.com/frachea/macro-tracker/internal/fdc"
+	"github.com/gin-contrib/cors"
+	"github.com/gin-gonic/gin"
 )
 
 var db *database.DB
 var fdcClient *fdc.Client
 
 func main() {
-	// Initialiser la base de données
-	dbHost := getEnv("DB_HOST", "localhost")
-	dbPort := getEnv("DB_PORT", "5434")
+	dbHost := getEnv("DB_HOST", "db")
+	dbPort := getEnv("DB_PORT", "5432")
 	dbUser := getEnv("DB_USER", "postgres")
 	dbPassword := getEnv("DB_PASSWORD", "postgres")
 	dbName := getEnv("DB_NAME", "macro_tracker")
@@ -41,17 +40,18 @@ func main() {
 	r := gin.Default()
 
 	r.Use(cors.New(cors.Config{
-		AllowOrigins:     []string{"*"}, // Accepter toutes les origines en développement
-		AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
-		AllowHeaders:     []string{"Origin", "Content-Type", "Accept", "Authorization"},
+		AllowOrigins:     []string{"http://localhost:3000", "http://localhost:5173"}, // Origines spécifiques pour le développement
+		AllowMethods:     []string{"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"},
+		AllowHeaders:     []string{"Origin", "Content-Type", "Accept", "Authorization", "X-Requested-With"},
 		ExposeHeaders:    []string{"Content-Length"},
-		AllowCredentials: false, // Doit être false quand AllowOrigins contient *
+		AllowCredentials: true,
 		MaxAge:           12 * time.Hour,
 	}))
 
 	// Routes API
 	api := r.Group("")
 	{
+		api.GET("/users", handleGetUsers)
 		api.GET("/users/:id", handleGetUser)
 		api.POST("/users", handleCreateUser)
 		api.PUT("/users/:id", handleUpdateUser)
@@ -66,10 +66,20 @@ func main() {
 		api.GET("/food/search", handleSearchFood)
 	}
 
-	log.Println("Starting server on :8081")
-	if err := r.Run(":8081"); err != nil {
+	log.Println("Starting server on :8080")
+	if err := r.Run(":8080"); err != nil {
 		log.Fatal(err)
 	}
+}
+
+func handleGetUsers(c *gin.Context) {
+	users, err := db.GetUsers()
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Erreur lors de la récupération des utilisateurs"})
+		return
+	}
+
+	c.JSON(http.StatusOK, users)
 }
 
 func handleGetUser(c *gin.Context) {
@@ -226,15 +236,15 @@ func handleAddMealPlanItem(c *gin.Context) {
 	}
 
 	type ItemRequest struct {
-		MealType  string  `json:"meal_type"`
-		FoodID    int     `json:"food_id"`
-		FoodName  string  `json:"food_name"`
-		Amount    float64 `json:"amount"`
-		Proteins  float64 `json:"proteins"`
-		Carbs     float64 `json:"carbs"`
-		Fats      float64 `json:"fats"`
-		Calories  float64 `json:"calories"`
-		Fiber     float64 `json:"fiber"`
+		MealType string  `json:"meal_type"`
+		FoodID   int     `json:"food_id"`
+		FoodName string  `json:"food_name"`
+		Amount   float64 `json:"amount"`
+		Proteins float64 `json:"proteins"`
+		Carbs    float64 `json:"carbs"`
+		Fats     float64 `json:"fats"`
+		Calories float64 `json:"calories"`
+		Fiber    float64 `json:"fiber"`
 	}
 
 	var itemReq ItemRequest

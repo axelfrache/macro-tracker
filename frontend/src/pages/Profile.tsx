@@ -6,6 +6,7 @@ import {
   Button,
   Box,
 } from '@mui/material';
+import { useNavigate } from 'react-router-dom';
 
 import { User } from '../types';
 import { updateUser } from '../api';
@@ -15,12 +16,18 @@ export const Profile = () => {
   const { currentUser, currentUserId, setCurrentUserId } = useUser();
   const [user, setUser] = useState<User | null>(null);
   const [editing, setEditing] = useState(false);
+  const navigate = useNavigate();
 
   useEffect(() => {
     if (currentUser) {
       setUser(currentUser);
     }
   }, [currentUser]);
+
+  const handleLogout = () => {
+    setCurrentUserId(null);
+    navigate('/login', { state: { autoLogout: true } });
+  };
 
   const handleSave = async () => {
     if (!user || !currentUserId) return;
@@ -102,9 +109,7 @@ export const Profile = () => {
               <Button 
                 variant="outlined" 
                 color="secondary" 
-                onClick={() => {
-                  setCurrentUserId(null);
-                }}
+                onClick={handleLogout}
               >
                 Déconnexion
               </Button>

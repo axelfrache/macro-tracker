@@ -14,7 +14,7 @@ import {
   ListItemText,
   ListItemButton
 } from '@mui/material';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { useUser } from '../context/UserContext';
 import { createUser } from '../api';
 import axios from 'axios';
@@ -31,8 +31,16 @@ export const Login = () => {
   const [success, setSuccess] = useState<string | null>(null);
   const [existingUsers, setExistingUsers] = useState<{id: number, name: string}[]>([]);
   const [loadingUsers, setLoadingUsers] = useState<boolean>(false);
+  const location = useLocation();
   
   const navigate = useNavigate();
+
+  useEffect(() => {
+    // Vérifier si on vient d'être déconnecté automatiquement
+    if (location.state?.autoLogout) {
+      setError('Votre session a expiré. Veuillez vous reconnecter.');
+    }
+  }, [location]);
 
   useEffect(() => {
     if (currentUserId) {
@@ -44,10 +52,8 @@ export const Login = () => {
     const fetchUsers = async () => {
       setLoadingUsers(true);
       try {
-        setExistingUsers([
-          { id: 1, name: "Utilisateur 1" },
-          { id: 2, name: "Nouveau" }
-        ]);
+        const response = await axios.get('http://localhost:8080/users');
+        setExistingUsers(response.data || []);
       } catch (err) {
         console.error("Erreur lors du chargement des utilisateurs:", err);
       } finally {
@@ -58,15 +64,31 @@ export const Login = () => {
     fetchUsers();
   }, [success]);
 
-  const handleLogin = () => {
+  const handleLogin = async () => {
     const id = parseInt(userId, 10);
     if (isNaN(id) || id <= 0) {
       setError('Veuillez entrer un ID utilisateur valide');
       return;
     }
 
-    setCurrentUserId(id);
-    navigate('/');
+    setLoading(true);
+    setError(null);
+
+    try {
+      const userExists = existingUsers.some(user => user.id === id);
+      if (!userExists) {
+        setError('Cet utilisateur n\'existe pas');
+        return;
+      }
+
+      setCurrentUserId(id);
+      navigate('/');
+    } catch (err) {
+      console.error('Erreur lors de la connexion:', err);
+      setError('Une erreur est survenue lors de la connexion');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleCreateUser = async () => {
@@ -103,7 +125,6 @@ export const Login = () => {
       setNewUserWeight('');
       setNewUserHeight('');
       
-      // Connecter automatiquement avec le nouvel utilisateur
       setCurrentUserId(response.data.id);
       navigate('/');
     } catch (err) {
@@ -142,7 +163,7 @@ export const Login = () => {
             <Box sx={{ display: 'flex', justifyContent: 'center', my: 2 }}>
               <CircularProgress size={24} />
             </Box>
-          ) : (
+          ) : existingUsers.length > 0 ? (
             <List>
               {existingUsers.map((user) => (
                 <ListItem key={user.id} disablePadding>
@@ -155,6 +176,10 @@ export const Login = () => {
                 </ListItem>
               ))}
             </List>
+          ) : (
+            <Alert severity="info" sx={{ mb: 2 }}>
+              Aucun utilisateur trouvé. Veuillez créer un compte ci-dessous.
+            </Alert>
           )}
 
           <Divider sx={{ my: 3 }} />

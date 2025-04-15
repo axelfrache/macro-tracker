@@ -97,6 +97,31 @@ func (db *DB) GetUser(id int) (*User, error) {
 	return user, nil
 }
 
+func (db *DB) GetUsers() ([]User, error) {
+	query := `SELECT id, name, age, weight, height, target_macros FROM users ORDER BY id`
+	rows, err := db.Query(query)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var users []User
+	for rows.Next() {
+		var user User
+		err := rows.Scan(&user.ID, &user.Name, &user.Age, &user.Weight, &user.Height, &user.TargetMacros)
+		if err != nil {
+			return nil, err
+		}
+		users = append(users, user)
+	}
+
+	if err = rows.Err(); err != nil {
+		return nil, err
+	}
+
+	return users, nil
+}
+
 func (db *DB) AddMeal(meal *Meal) error {
 	query := `
 		INSERT INTO meals (user_id, meal_type, meal_date, food_id, food_name, amount, proteins, carbs, fats, calories, fiber)
@@ -253,7 +278,6 @@ func (db *DB) AddMealPlanItem(item *MealPlanItem) error {
 	).Scan(&item.ID)
 }
 
-// UpdateMealPlanItemMealType met à jour le type de repas d'un élément d'un meal plan
 func (db *DB) UpdateMealPlanItemMealType(itemID int, mealType MealType) error {
 	query := `UPDATE meal_plan_items SET meal_type = $1 WHERE id = $2`
 	
@@ -274,7 +298,6 @@ func (db *DB) UpdateMealPlanItemMealType(itemID int, mealType MealType) error {
 	return nil
 }
 
-// DeleteMealPlanItem supprime un élément d'un meal plan par son ID
 func (db *DB) DeleteMealPlanItem(itemID int) error {
 	query := `DELETE FROM meal_plan_items WHERE id = $1`
 	

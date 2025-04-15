@@ -19,7 +19,6 @@ const theme = createTheme({
   },
 });
 
-// Composant qui vérifie si l'utilisateur est connecté
 const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   const { currentUserId, loading } = useUser();
   
@@ -34,7 +33,6 @@ const ProtectedRoute = ({ children }: { children: React.ReactNode }) => {
   return <>{children}</>;
 };
 
-// Composant principal de l'application
 export const App = () => {
   return (
     <ThemeProvider theme={theme}>

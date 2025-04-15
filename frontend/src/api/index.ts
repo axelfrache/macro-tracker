@@ -4,7 +4,7 @@ import { User, MealPlan, MealPlanItem } from '../types';
 let apiBaseUrl = import.meta.env.VITE_API_URL;
 
 if (typeof window !== 'undefined' && apiBaseUrl.includes('backend')) {
-  apiBaseUrl = 'http://localhost:8081';
+  apiBaseUrl = 'http://localhost:8080';
 }
 
 console.log('Using API URL:', apiBaseUrl);

@@ -35,6 +35,8 @@ export const UserProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
           console.error('Erreur lors de la récupération de l\'utilisateur:', err);
           setError('Impossible de charger les informations de l\'utilisateur');
           setCurrentUser(null);
+          setCurrentUserId(null);
+          localStorage.removeItem('currentUserId');
         } finally {
           setLoading(false);
         }
