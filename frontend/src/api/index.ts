@@ -1,13 +1,11 @@
 import axios, { AxiosResponse } from 'axios';
-import { User, MealPlan, MealPlanItem } from '../types';
+import { User, MealPlan, MealPlanItem, Food, MacroNutrients } from '../types';
 
 let apiBaseUrl = import.meta.env.VITE_API_URL;
 
 if (typeof window !== 'undefined' && apiBaseUrl.includes('backend')) {
   apiBaseUrl = 'http://localhost:8080';
 }
-
-console.log('Using API URL:', apiBaseUrl);
 
 const api = axios.create({
   baseURL: apiBaseUrl,
@@ -28,7 +26,6 @@ api.interceptors.response.use(
     return response;
   },
   (error) => {
-    console.error('API Error:', error.message);
     return Promise.reject(error);
   }
 );
@@ -137,9 +134,15 @@ export const updateMealPlanItemMealType = async (itemId: number, mealType: strin
 };
 
 let searchTimeout: number | null = null;
-export const searchFood = async (query: string): Promise<AxiosResponse<any>> => {
+export const searchFood = async (query: string): Promise<AxiosResponse<Food[]>> => {
   if (!query.trim()) {
-    return Promise.resolve({ data: [] } as AxiosResponse<any>);
+    return {
+      data: [],
+      status: 200,
+      statusText: 'OK',
+      headers: {},
+      config: {} as any
+    } as AxiosResponse<Food[]>;
   }
   
   if (searchTimeout) {
@@ -149,11 +152,164 @@ export const searchFood = async (query: string): Promise<AxiosResponse<any>> => 
   return new Promise((resolve, reject) => {
     searchTimeout = window.setTimeout(async () => {
       try {
-        const response = await api.get(`/food/search?query=${encodeURIComponent(query)}`);
+        const response = await api.get<Food[]>(`/food/search?query=${encodeURIComponent(query)}`);
         resolve(response);
       } catch (error) {
         reject(error);
       }
     }, 300);
   });
+};
+
+export const getFood = async (foodId: number): Promise<AxiosResponse<Food>> => {
+  const cacheKey = `food_${foodId}`;
+  const cachedData = cache.get<AxiosResponse<Food>>(cacheKey);
+  
+  if (cachedData) {
+    return cachedData;
+  }
+  
+  const response = await api.get<Food>(`/food/${foodId}`);
+  cache.set(cacheKey, response, 3600000);
+  return response;
+};
+
+export const calculateMacros = (food: Food, amount: number): MacroNutrients => {
+  const getNutrientValue = (nutrientIds: number[]): number => {
+    if (!food.nutrients || !Array.isArray(food.nutrients)) {
+      return 0;
+    }
+    
+    for (const nutrient of food.nutrients) {
+      if (nutrient.nutrient) {
+        for (const id of nutrientIds) {
+          if (nutrient.nutrient.id === id) {
+            if (nutrient.amount !== undefined && nutrient.amount > 0) {
+              return nutrient.amount;
+            }
+            
+            if (nutrient.value !== undefined && nutrient.value > 0) {
+              return nutrient.value;
+            }
+            
+            if (nutrient.nutrient.amount !== undefined && nutrient.nutrient.amount > 0) {
+              return nutrient.nutrient.amount;
+            }
+            
+            if (nutrient.nutrient.value !== undefined && nutrient.nutrient.value > 0) {
+              return nutrient.nutrient.value;
+            }
+            
+            try {
+              const { name } = nutrient.nutrient;
+              
+              if (name && name.toLowerCase().includes('protein') && (id === 1003 || id === 203)) {
+                const amountStr = String(nutrient.amount || 0);
+                const amountValue = parseFloat(amountStr);
+                return isNaN(amountValue) ? 0 : amountValue;
+              }
+              
+              if (name && name.toLowerCase().includes('carbohydrate') && (id === 1005 || id === 205)) {
+                const amountStr = String(nutrient.amount || 0);
+                const amountValue = parseFloat(amountStr);
+                return isNaN(amountValue) ? 0 : amountValue;
+              }
+              
+              if (name && name.toLowerCase().includes('fat') && (id === 1004 || id === 204)) {
+                const amountStr = String(nutrient.amount || 0);
+                const amountValue = parseFloat(amountStr);
+                return isNaN(amountValue) ? 0 : amountValue;
+              }
+              
+              if (name && name.toLowerCase().includes('energy') && (id === 1008 || id === 208)) {
+                const amountStr = String(nutrient.amount || 0);
+                const amountValue = parseFloat(amountStr);
+                return isNaN(amountValue) ? 0 : amountValue;
+              }
+              
+              if (name && name.toLowerCase().includes('fiber') && (id === 1079 || id === 291)) {
+                const amountStr = String(nutrient.amount || 0);
+                const amountValue = parseFloat(amountStr);
+                return isNaN(amountValue) ? 0 : amountValue;
+              }
+            } catch (error) {
+            }
+          }
+        }
+      }
+      
+      for (const id of nutrientIds) {
+        if (nutrient.id === id || nutrient.nutrientId === id) {
+          if (nutrient.amount !== undefined && nutrient.amount > 0) {
+            return nutrient.amount;
+          }
+          
+          if (nutrient.value !== undefined && nutrient.value > 0) {
+            return nutrient.value;
+          }
+        }
+      }
+    }
+    
+    for (const nutrient of food.nutrients) {
+      try {
+        const name = nutrient.name || (nutrient.nutrient && nutrient.nutrient.name);
+        if (name) {
+          for (const id of nutrientIds) {
+            if ((id === 1003 || id === 203) && name.toLowerCase().includes('protein')) {
+              const amountValue = nutrient.amount || nutrient.value || 0;
+              return amountValue;
+            }
+            
+            if ((id === 1005 || id === 205) && name.toLowerCase().includes('carbohydrate')) {
+              const amountValue = nutrient.amount || nutrient.value || 0;
+              return amountValue;
+            }
+            
+            if ((id === 1004 || id === 204) && name.toLowerCase().includes('fat')) {
+              const amountValue = nutrient.amount || nutrient.value || 0;
+              return amountValue;
+            }
+            
+            if ((id === 1008 || id === 208) && (name.toLowerCase().includes('energy') || name.toLowerCase().includes('calor'))) {
+              const amountValue = nutrient.amount || nutrient.value || 0;
+              return amountValue;
+            }
+            
+            if ((id === 1079 || id === 291) && name.toLowerCase().includes('fiber')) {
+              const amountValue = nutrient.amount || nutrient.value || 0;
+              return amountValue;
+            }
+          }
+        }
+      } catch (error) {
+      }
+    }
+    
+    return 0;
+  };
+  
+  const proteinIds = [1003, 203];
+  const carbIds = [1005, 205];
+  const fatIds = [1004, 204];
+  const calorieIds = [1008, 208];
+  const fiberIds = [1079, 291];
+  
+  const proteins = getNutrientValue(proteinIds);
+  const carbs = getNutrientValue(carbIds);
+  const fats = getNutrientValue(fatIds);
+  const calories = getNutrientValue(calorieIds);
+  const fiber = getNutrientValue(fiberIds);
+  
+  const factor = amount / 100;
+  
+  const result = {
+    proteins: proteins * factor,
+    carbs: carbs * factor,
+    fats: fats * factor,
+    calories: calories * factor,
+    fiber: fiber * factor
+  };
+  
+  return result;
 };

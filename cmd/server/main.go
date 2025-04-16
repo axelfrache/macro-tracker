@@ -64,6 +64,7 @@ func main() {
 		api.DELETE("/meal-plan-items/:itemId", handleDeleteMealPlanItem)
 
 		api.GET("/food/search", handleSearchFood)
+		api.GET("/food/:id", handleGetFood)
 	}
 
 	log.Println("Starting server on :8080")
@@ -146,6 +147,18 @@ func handleUpdateUser(c *gin.Context) {
 	}
 	if userUpdate.Height != 0 {
 		user.Height = userUpdate.Height
+	}
+	if userUpdate.Gender != "" {
+		user.Gender = userUpdate.Gender
+	}
+	if len(userUpdate.TargetMacros) > 0 {
+		user.TargetMacros = userUpdate.TargetMacros
+	}
+
+	err = db.UpdateUser(user)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Erreur lors de la mise à jour de l'utilisateur: " + err.Error()})
+		return
 	}
 
 	c.JSON(http.StatusOK, user)
@@ -336,11 +349,103 @@ func handleSearchFood(c *gin.Context) {
 
 	result, err := fdcClient.SearchFoods(query)
 	if err != nil {
+		log.Printf("Erreur lors de la recherche FDC pour '%s': %v", query, err)
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
 
-	c.JSON(http.StatusOK, result.Foods)
+	if len(result.Foods) == 0 {
+		c.JSON(http.StatusOK, []interface{}{})
+		return
+	}
+
+	// Vérifier que les résultats ont bien des nutriments
+	processedFoods := make([]map[string]interface{}, 0, len(result.Foods))
+	for i, food := range result.Foods {
+		// Limiter à 10 résultats pour des performances optimales
+		if i >= 10 {
+			break
+		}
+		
+		// Ajouter des informations nutritionnelles si absentes
+		detailedFood := &food
+		if len(food.Nutrients) == 0 {
+			tmpFood, err := fdcClient.GetFood(food.FdcID)
+			if err == nil && tmpFood != nil {
+				detailedFood = tmpFood
+			}
+		}
+		
+		// Calculer les macros pour chaque aliment
+		proteins, carbs, fats, calories, fiber := detailedFood.GetMacros()
+		
+		// Vérifier si les valeurs sont valides
+		validNutrients := proteins > 0 || carbs > 0 || fats > 0 || calories > 0
+		
+		// Ajouter l'information des macros dans les log pour le débogage
+		log.Printf("Aliment: %s, Protéines: %.2f, Glucides: %.2f, Lipides: %.2f, Calories: %.2f, Fibres: %.2f, Valide: %v",
+			detailedFood.Description, proteins, carbs, fats, calories, fiber, validNutrients)
+		
+		// Créer un objet avec les informations nécessaires
+		processedFood := map[string]interface{}{
+			"fdcId":       detailedFood.FdcID,
+			"description": detailedFood.Description,
+			"dataType":    detailedFood.DataType,
+			"nutrients":   detailedFood.Nutrients,
+			"macros": map[string]float64{
+				"proteins": proteins,
+				"carbs":    carbs,
+				"fats":     fats,
+				"calories": calories,
+				"fiber":    fiber,
+			},
+		}
+		
+		// N'ajouter que les aliments avec des valeurs nutritionnelles valides
+		if validNutrients {
+			processedFoods = append(processedFoods, processedFood)
+		}
+	}
+
+	c.JSON(http.StatusOK, processedFoods)
+}
+
+func handleGetFood(c *gin.Context) {
+	idStr := c.Param("id")
+	id, err := strconv.Atoi(idStr)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "ID aliment invalide"})
+		return
+	}
+
+	food, err := fdcClient.GetFood(id)
+	if err != nil {
+		log.Printf("Erreur lors de la récupération de l'aliment %d: %v", id, err)
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	// Calculer les macros
+	proteins, carbs, fats, calories, fiber := food.GetMacros()
+	
+	// Ajouter les macros aux détails de l'aliment pour simplifier l'utilisation côté client
+	response := map[string]interface{}{
+		"fdcId":       food.FdcID,
+		"description": food.Description,
+		"nutrients":   food.Nutrients,
+		"macros": map[string]float64{
+			"proteins": proteins,
+			"carbs":    carbs,
+			"fats":     fats, 
+			"calories": calories,
+			"fiber":    fiber,
+		},
+	}
+	
+	log.Printf("Détail aliment: %s, Protéines: %.2f, Glucides: %.2f, Lipides: %.2f, Calories: %.2f, Fibres: %.2f",
+		food.Description, proteins, carbs, fats, calories, fiber)
+
+	c.JSON(http.StatusOK, response)
 }
 
 func getEnv(key, defaultValue string) string {

@@ -35,7 +35,7 @@ export const Home = () => {
 
   const calculateTotalMacros = (plan: MealPlan) => {
     if (!plan.items || !Array.isArray(plan.items) || plan.items.length === 0) {
-      return { proteins: 0, carbs: 0, fats: 0, calories: 0 };
+      return { proteins: 0, carbs: 0, fats: 0, calories: 0, fiber: 0 };
     }
     
     return plan.items.reduce(
@@ -44,8 +44,9 @@ export const Home = () => {
         carbs: acc.carbs + (item.carbs || 0),
         fats: acc.fats + (item.fats || 0),
         calories: acc.calories + (item.calories || 0),
+        fiber: acc.fiber + (item.fiber || 0),
       }),
-      { proteins: 0, carbs: 0, fats: 0, calories: 0 }
+      { proteins: 0, carbs: 0, fats: 0, calories: 0, fiber: 0 }
     );
   };
 
@@ -86,6 +87,7 @@ export const Home = () => {
                   proteins={macros.proteins}
                   carbs={macros.carbs}
                   fats={macros.fats}
+                  fiber={macros.fiber}
                 />
                 <Typography variant="body2" color="text.secondary">
                   Total calories: {macros.calories.toFixed(0)} kcal

@@ -4,16 +4,21 @@ interface MacroChartProps {
   proteins: number;
   carbs: number;
   fats: number;
+  fiber?: number;
 }
 
-export const MacroChart = ({ proteins, carbs, fats }: MacroChartProps) => {
+export const MacroChart = ({ proteins, carbs, fats, fiber = 0 }: MacroChartProps) => {
   const data = [
     { name: 'Protéines', value: proteins },
     { name: 'Glucides', value: carbs },
     { name: 'Lipides', value: fats },
   ];
 
-  const COLORS = ['#0088FE', '#00C49F', '#FFBB28'];
+  if (fiber > 0) {
+    data.push({ name: 'Fibres', value: fiber });
+  }
+
+  const COLORS = ['#0088FE', '#00C49F', '#FFBB28', '#9C27B0'];
 
   return (
     <ResponsiveContainer width="100%" height={300}>

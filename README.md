@@ -2,6 +2,8 @@
 
 Macro-Tracker est une application de suivi nutritionnel complète qui permet de suivre vos apports en macronutriments au quotidien. Elle se compose d'une interface en ligne de commande (CLI) et d'une interface web moderne.
 
+Projet réalisé par Axel Frache et Estelle Tamalet.
+
 ## Prérequis
 
 - Docker et Docker Compose
@@ -68,6 +70,7 @@ Lors du premier lancement, vous devrez créer un compte en fournissant les infor
 - Âge
 - Poids (en kg)
 - Taille (en cm)
+- Genre (homme/femme)
 
 Un ID utilisateur vous sera attribué, conservez-le pour vos prochaines connexions.
 
@@ -111,6 +114,7 @@ Affiche pour la journée en cours :
 - Total des glucides
 - Total des lipides
 - Total des fibres
+- Comparaison avec vos objectifs nutritionnels (si définis)
 
 5. **Gestion des journées types** :
 ```bash
@@ -121,7 +125,42 @@ Permet de :
 - Consulter les journées types existantes
 - Ajouter des repas à une journée type
 
-6. **Quitter l'application** :
+6. **Informations de santé** :
+```bash
+health
+```
+Affiche :
+- Votre IMC (Indice de Masse Corporelle) avec interprétation
+- Estimation de votre taux de masse grasse
+- Informations basées sur votre poids, taille et âge
+
+7. **Gestion des objectifs nutritionnels** :
+```bash
+goals
+```
+Permet de :
+- Consulter vos objectifs nutritionnels actuels
+- Définir de nouveaux objectifs (calories, répartition des macronutriments)
+
+8. **Historique des repas** :
+```bash
+history [nombre de jours]
+```
+Affiche l'historique de vos repas et macronutriments sur plusieurs jours (par défaut : 7 jours)
+
+9. **Gestion du profil** :
+```bash
+profile
+```
+Permet de modifier vos informations personnelles (nom, âge, poids, taille, genre)
+
+10. **Export des données** :
+```bash
+export
+```
+Exporte vos données nutritionnelles au format CSV pour analyse externe
+
+11. **Quitter l'application** :
 ```bash
 exit
 ```
@@ -132,8 +171,11 @@ exit
 2. Rechercher un aliment : `search apple`
 3. Ajouter l'aliment au petit-déjeuner : `add 174988 125 petit-dejeuner`
 4. Vérifier son bilan : `report`
-5. Créer une journée type : `plan`
-6. Quitter : `exit`
+5. Consulter ses informations de santé : `health`
+6. Créer une journée type : `plan`
+7. Modifier ses objectifs : `goals`
+8. Exporter ses données : `export`
+9. Quitter : `exit`
 
 ## Interface Web
 

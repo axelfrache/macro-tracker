@@ -151,7 +151,14 @@ export const MealPlans = () => {
         </Paper>
       )}
 
-      <Dialog open={open} onClose={() => !creating && setOpen(false)}>
+      <Dialog
+        open={open}
+        onClose={() => setOpen(false)}
+        disablePortal
+        keepMounted
+        disableEnforceFocus
+        disableAutoFocus
+      >
         <DialogTitle>Nouvelle journée type</DialogTitle>
         <DialogContent>
           {createError && (

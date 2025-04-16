@@ -12,7 +12,11 @@ import {
   List,
   ListItem,
   ListItemText,
-  ListItemButton
+  ListItemButton,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem
 } from '@mui/material';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useUser } from '../context/UserContext';
@@ -26,6 +30,7 @@ export const Login = () => {
   const [newUserAge, setNewUserAge] = useState<string>('');
   const [newUserWeight, setNewUserWeight] = useState<string>('');
   const [newUserHeight, setNewUserHeight] = useState<string>('');
+  const [newUserGender, setNewUserGender] = useState<string>('homme');
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
@@ -92,7 +97,7 @@ export const Login = () => {
   };
 
   const handleCreateUser = async () => {
-    if (!newUserName || !newUserAge || !newUserWeight || !newUserHeight) {
+    if (!newUserName || !newUserAge || !newUserWeight || !newUserHeight || !newUserGender) {
       setError('Veuillez remplir tous les champs');
       return;
     }
@@ -106,6 +111,11 @@ export const Login = () => {
       return;
     }
 
+    if (newUserGender !== 'homme' && newUserGender !== 'femme') {
+      setError('Veuillez sélectionner un genre valide');
+      return;
+    }
+
     setLoading(true);
     setError(null);
     setSuccess(null);
@@ -116,7 +126,8 @@ export const Login = () => {
         age,
         weight,
         height,
-        target_macros: {}
+        target_macros: {},
+        gender: newUserGender
       });
 
       setSuccess(`Compte créé avec succès! Votre ID est: ${response.data.id}`);
@@ -255,6 +266,20 @@ export const Login = () => {
             type="number"
             inputProps={{ step: 0.1 }}
           />
+          
+          <FormControl fullWidth margin="normal">
+            <InputLabel id="gender-select-label">Genre</InputLabel>
+            <Select
+              labelId="gender-select-label"
+              id="gender-select"
+              value={newUserGender}
+              label="Genre"
+              onChange={(e) => setNewUserGender(e.target.value)}
+            >
+              <MenuItem value="homme">Homme</MenuItem>
+              <MenuItem value="femme">Femme</MenuItem>
+            </Select>
+          </FormControl>
           
           <Button 
             variant="contained" 
