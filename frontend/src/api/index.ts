@@ -7,8 +7,6 @@ if (typeof window !== 'undefined' && apiBaseUrl.includes('backend')) {
   apiBaseUrl = 'http://localhost:8080';
 }
 
-console.log('Using API URL:', apiBaseUrl);
-
 const api = axios.create({
   baseURL: apiBaseUrl,
   timeout: 10000,
@@ -28,7 +26,6 @@ api.interceptors.response.use(
     return response;
   },
   (error) => {
-    console.error('API Error:', error.message);
     return Promise.reject(error);
   }
 );
@@ -155,21 +152,9 @@ export const searchFood = async (query: string): Promise<AxiosResponse<Food[]>> 
   return new Promise((resolve, reject) => {
     searchTimeout = window.setTimeout(async () => {
       try {
-        console.log('Recherche d\'aliments avec la requête:', query);
         const response = await api.get<Food[]>(`/food/search?query=${encodeURIComponent(query)}`);
-        console.log('Réponse de l\'API:', response.data);
-        
-        if (response.data && Array.isArray(response.data)) {
-          for (const food of response.data) {
-            if (!food.macros) {
-              console.warn('Aliment sans propriété macros:', food);
-            }
-          }
-        }
-        
         resolve(response);
       } catch (error) {
-        console.error('Erreur lors de la recherche d\'aliments:', error);
         reject(error);
       }
     }, 300);
@@ -185,7 +170,7 @@ export const getFood = async (foodId: number): Promise<AxiosResponse<Food>> => {
   }
   
   const response = await api.get<Food>(`/food/${foodId}`);
-  cache.set(cacheKey, response, 3600000); // Cache pendant 1 heure
+  cache.set(cacheKey, response, 3600000);
   return response;
 };
 
@@ -195,29 +180,23 @@ export const calculateMacros = (food: Food, amount: number): MacroNutrients => {
       return 0;
     }
     
-    console.log('Recherche des nutriments avec IDs:', nutrientIds);
-    
     for (const nutrient of food.nutrients) {
       if (nutrient.nutrient) {
         for (const id of nutrientIds) {
           if (nutrient.nutrient.id === id) {
             if (nutrient.amount !== undefined && nutrient.amount > 0) {
-              console.log(`Nutriment trouvé (format 1) - ID: ${id}, valeur: ${nutrient.amount}`);
               return nutrient.amount;
             }
             
             if (nutrient.value !== undefined && nutrient.value > 0) {
-              console.log(`Nutriment trouvé (format 2) - ID: ${id}, valeur: ${nutrient.value}`);
               return nutrient.value;
             }
             
             if (nutrient.nutrient.amount !== undefined && nutrient.nutrient.amount > 0) {
-              console.log(`Nutriment trouvé (format 3) - ID: ${id}, valeur: ${nutrient.nutrient.amount}`);
               return nutrient.nutrient.amount;
             }
             
             if (nutrient.nutrient.value !== undefined && nutrient.nutrient.value > 0) {
-              console.log(`Nutriment trouvé (format 4) - ID: ${id}, valeur: ${nutrient.nutrient.value}`);
               return nutrient.nutrient.value;
             }
             
@@ -227,35 +206,30 @@ export const calculateMacros = (food: Food, amount: number): MacroNutrients => {
               if (name && name.toLowerCase().includes('protein') && (id === 1003 || id === 203)) {
                 const amountStr = String(nutrient.amount || 0);
                 const amountValue = parseFloat(amountStr);
-                console.log(`Protéines trouvées par nom: ${name}, valeur: ${amountValue}`);
                 return isNaN(amountValue) ? 0 : amountValue;
               }
               
               if (name && name.toLowerCase().includes('carbohydrate') && (id === 1005 || id === 205)) {
                 const amountStr = String(nutrient.amount || 0);
                 const amountValue = parseFloat(amountStr);
-                console.log(`Glucides trouvés par nom: ${name}, valeur: ${amountValue}`);
                 return isNaN(amountValue) ? 0 : amountValue;
               }
               
               if (name && name.toLowerCase().includes('fat') && (id === 1004 || id === 204)) {
                 const amountStr = String(nutrient.amount || 0);
                 const amountValue = parseFloat(amountStr);
-                console.log(`Lipides trouvés par nom: ${name}, valeur: ${amountValue}`);
                 return isNaN(amountValue) ? 0 : amountValue;
               }
               
               if (name && name.toLowerCase().includes('energy') && (id === 1008 || id === 208)) {
                 const amountStr = String(nutrient.amount || 0);
                 const amountValue = parseFloat(amountStr);
-                console.log(`Calories trouvées par nom: ${name}, valeur: ${amountValue}`);
                 return isNaN(amountValue) ? 0 : amountValue;
               }
               
               if (name && name.toLowerCase().includes('fiber') && (id === 1079 || id === 291)) {
                 const amountStr = String(nutrient.amount || 0);
                 const amountValue = parseFloat(amountStr);
-                console.log(`Fibres trouvées par nom: ${name}, valeur: ${amountValue}`);
                 return isNaN(amountValue) ? 0 : amountValue;
               }
             } catch (error) {
@@ -267,12 +241,10 @@ export const calculateMacros = (food: Food, amount: number): MacroNutrients => {
       for (const id of nutrientIds) {
         if (nutrient.id === id || nutrient.nutrientId === id) {
           if (nutrient.amount !== undefined && nutrient.amount > 0) {
-            console.log(`Nutriment trouvé (format 5) - ID: ${id}, valeur: ${nutrient.amount}`);
             return nutrient.amount;
           }
           
           if (nutrient.value !== undefined && nutrient.value > 0) {
-            console.log(`Nutriment trouvé (format 6) - ID: ${id}, valeur: ${nutrient.value}`);
             return nutrient.value;
           }
         }
@@ -286,31 +258,26 @@ export const calculateMacros = (food: Food, amount: number): MacroNutrients => {
           for (const id of nutrientIds) {
             if ((id === 1003 || id === 203) && name.toLowerCase().includes('protein')) {
               const amountValue = nutrient.amount || nutrient.value || 0;
-              console.log(`Nutriment trouvé par nom: "protein", valeur: ${amountValue}`);
               return amountValue;
             }
             
             if ((id === 1005 || id === 205) && name.toLowerCase().includes('carbohydrate')) {
               const amountValue = nutrient.amount || nutrient.value || 0;
-              console.log(`Nutriment trouvé par nom: "carbohydrate", valeur: ${amountValue}`);
               return amountValue;
             }
             
             if ((id === 1004 || id === 204) && name.toLowerCase().includes('fat')) {
               const amountValue = nutrient.amount || nutrient.value || 0;
-              console.log(`Nutriment trouvé par nom: "fat", valeur: ${amountValue}`);
               return amountValue;
             }
             
             if ((id === 1008 || id === 208) && (name.toLowerCase().includes('energy') || name.toLowerCase().includes('calor'))) {
               const amountValue = nutrient.amount || nutrient.value || 0;
-              console.log(`Nutriment trouvé par nom: "energy/calorie", valeur: ${amountValue}`);
               return amountValue;
             }
             
             if ((id === 1079 || id === 291) && name.toLowerCase().includes('fiber')) {
               const amountValue = nutrient.amount || nutrient.value || 0;
-              console.log(`Nutriment trouvé par nom: "fiber", valeur: ${amountValue}`);
               return amountValue;
             }
           }
@@ -319,7 +286,6 @@ export const calculateMacros = (food: Food, amount: number): MacroNutrients => {
       }
     }
     
-    console.log(`Aucun nutriment trouvé pour les IDs: ${nutrientIds.join(', ')}`);
     return 0;
   };
   
@@ -344,8 +310,6 @@ export const calculateMacros = (food: Food, amount: number): MacroNutrients => {
     calories: calories * factor,
     fiber: fiber * factor
   };
-  
-  console.log(`Macros calculés pour ${food.description}:`, result);
   
   return result;
 };

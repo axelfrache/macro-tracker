@@ -6,6 +6,7 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"strings"
 )
 
 type Client struct {
@@ -29,18 +30,108 @@ type Nutrient struct {
 	Name     string  `json:"nutrientName"`
 	Amount   float64 `json:"value"`
 	UnitName string  `json:"unitName"`
+	// Structure alternative pour l'API FDC v1
+	Nutrient struct {
+		ID   int    `json:"id"`
+		Name string `json:"name"`
+	} `json:"nutrient"`
+	Value  float64 `json:"amount"`
+	Type   string  `json:"type"`
 }
 
 // GetNutrientValue récupère la valeur d'un nutriment par son ID
 func (f *Food) GetNutrientValue(nutrientIDs ...int) float64 {
 	for _, id := range nutrientIDs {
 		for _, n := range f.Nutrients {
-			if n.ID == id {
+			// Format 1: Structure directe avec ID et Amount
+			if n.ID == id && n.Amount > 0 {
 				return n.Amount
+			}
+			
+			// Format 2: Structure avec nutrient.id et value/amount
+			if n.Nutrient.ID == id {
+				if n.Value > 0 {
+					return n.Value
+				}
+			}
+			
+			// Recherche dans des structures alternatives possibles
+			// Ces adaptations permettent de gérer différentes versions de l'API
+			if n.Type == "FoodNutrient" && n.Nutrient.ID == id {
+				return n.Value
 			}
 		}
 	}
+	
+	// Si rien n'est trouvé, parcourir à nouveau et chercher par nom
+	for _, n := range f.Nutrients {
+		for _, id := range nutrientIDs {
+			// Correspondances de noms pour les nutriments courants
+			if (id == 1003 || id == 203) && (containsIgnoreCase(n.Name, "protein") || 
+			    containsIgnoreCase(n.Nutrient.Name, "protein")) {
+				if n.Amount > 0 {
+					return n.Amount
+				}
+				if n.Value > 0 {
+					return n.Value
+				}
+			}
+			
+			if (id == 1005 || id == 205) && (containsIgnoreCase(n.Name, "carbohydrate") || 
+			    containsIgnoreCase(n.Nutrient.Name, "carbohydrate")) {
+				if n.Amount > 0 {
+					return n.Amount
+				}
+				if n.Value > 0 {
+					return n.Value
+				}
+			}
+			
+			if (id == 1004 || id == 204) && (containsIgnoreCase(n.Name, "fat") || 
+			    containsIgnoreCase(n.Nutrient.Name, "fat")) {
+				if n.Amount > 0 {
+					return n.Amount
+				}
+				if n.Value > 0 {
+					return n.Value
+				}
+			}
+			
+			if (id == 1008 || id == 208) && (containsIgnoreCase(n.Name, "energy") || 
+			    containsIgnoreCase(n.Nutrient.Name, "energy")) {
+				if n.Amount > 0 {
+					return n.Amount
+				}
+				if n.Value > 0 {
+					return n.Value
+				}
+			}
+			
+			if (id == 1079 || id == 291) && (containsIgnoreCase(n.Name, "fiber") || 
+			    containsIgnoreCase(n.Nutrient.Name, "fiber")) {
+				if n.Amount > 0 {
+					return n.Amount
+				}
+				if n.Value > 0 {
+					return n.Value
+				}
+			}
+		}
+	}
+	
 	return 0
+}
+
+// Fonction utilitaire pour vérifier si une chaîne contient une sous-chaîne (insensible à la casse)
+func containsIgnoreCase(s, substr string) bool {
+	if s == "" || substr == "" {
+		return false
+	}
+	
+	// Conversion simple en minuscules pour la comparaison
+	s = strings.ToLower(s)
+	substr = strings.ToLower(substr)
+	return strings.Contains(s, substr)
 }
 
 func (f *Food) GetMacros() (proteins, carbs, fats, calories, fiber float64) {
@@ -67,8 +158,10 @@ func (f *Food) GetMacros() (proteins, carbs, fats, calories, fiber float64) {
 	if proteins == 0 && carbs == 0 && fats == 0 && calories == 0 {
 		fmt.Printf("Aucune valeur nutritionnelle trouvée pour: %s\n", f.Description)
 		if len(f.Nutrients) > 0 {
+			// Ajouter des logs plus détaillés sur la structure des nutriments
 			fmt.Printf("Premier nutriment: ID=%d, Name=%s, Valeur=%f\n", 
 				f.Nutrients[0].ID, f.Nutrients[0].Name, f.Nutrients[0].Amount)
+			fmt.Printf("Structure du premier nutriment: %+v\n", f.Nutrients[0])
 		}
 	}
 	
@@ -106,18 +199,9 @@ func (c *Client) SearchFoods(query string) (*SearchResponse, error) {
 		return nil, fmt.Errorf("erreur lors de la lecture du corps de la réponse: %v", err)
 	}
 	
-	fmt.Printf("Réponse brute de l'API (début): %.300s...\n", string(body))
-	
 	var result SearchResponse
 	if err := json.Unmarshal(body, &result); err != nil {
 		return nil, fmt.Errorf("erreur lors de la désérialisation: %v", err)
-	}
-	
-	fmt.Printf("Nombre d'aliments trouvés: %d\n", len(result.Foods))
-	if len(result.Foods) > 0 {
-		food := result.Foods[0]
-		fmt.Printf("Premier aliment: ID=%d, Description=%s, Nutriments=%d\n", 
-			food.FdcID, food.Description, len(food.Nutrients))
 	}
 
 	return &result, nil
@@ -146,15 +230,10 @@ func (c *Client) GetFood(fdcID int) (*Food, error) {
 		return nil, fmt.Errorf("erreur lors de la lecture du corps de la réponse: %v", err)
 	}
 	
-	fmt.Printf("Réponse brute de GetFood (début): %.300s...\n", string(body))
-	
 	var food Food
 	if err := json.Unmarshal(body, &food); err != nil {
 		return nil, fmt.Errorf("erreur lors de la désérialisation: %v", err)
 	}
-
-	fmt.Printf("Aliment récupéré: ID=%d, Description=%s, Nutriments=%d\n",
-		food.FdcID, food.Description, len(food.Nutrients))
 
 	return &food, nil
 }

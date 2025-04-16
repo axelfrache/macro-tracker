@@ -321,22 +321,47 @@ func handleReport() {
 	fmt.Printf("- Lipides: %.1fg\n", fats)
 	fmt.Printf("- Fibres: %.1fg\n", fiber)
 
-	// Afficher la comparaison avec les objectifs si définis
 	var targets MacroTargets
 	if len(currentUser.TargetMacros) > 0 {
 		err := json.Unmarshal(currentUser.TargetMacros, &targets)
 		if err == nil && targets.Calories > 0 {
 			fmt.Println("\nComparaison avec vos objectifs:")
+			
+			caloriePercent := 0.0
+			if targets.Calories > 0 {
+				caloriePercent = calories/targets.Calories*100
+			}
+			
+			proteinPercent := 0.0
+			if targets.Proteins > 0 {
+				proteinPercent = proteins/targets.Proteins*100
+			}
+			
+			carbPercent := 0.0
+			if targets.Carbs > 0 {
+				carbPercent = carbs/targets.Carbs*100
+			}
+			
+			fatPercent := 0.0
+			if targets.Fats > 0 {
+				fatPercent = fats/targets.Fats*100
+			}
+			
+			fiberPercent := 0.0
+			if targets.Fiber > 0 {
+				fiberPercent = fiber/targets.Fiber*100
+			}
+			
 			fmt.Printf("- Calories: %.0f/%.0f kcal (%.0f%%)\n", 
-				calories, targets.Calories, calories/targets.Calories*100)
+				calories, targets.Calories, caloriePercent)
 			fmt.Printf("- Protéines: %.1f/%.1fg (%.0f%%)\n", 
-				proteins, targets.Proteins, proteins/targets.Proteins*100)
+				proteins, targets.Proteins, proteinPercent)
 			fmt.Printf("- Glucides: %.1f/%.1fg (%.0f%%)\n", 
-				carbs, targets.Carbs, carbs/targets.Carbs*100)
+				carbs, targets.Carbs, carbPercent)
 			fmt.Printf("- Lipides: %.1f/%.1fg (%.0f%%)\n", 
-				fats, targets.Fats, fats/targets.Fats*100)
+				fats, targets.Fats, fatPercent)
 			fmt.Printf("- Fibres: %.1f/%.1fg (%.0f%%)\n", 
-				fiber, targets.Fiber, fiber/targets.Fiber*100)
+				fiber, targets.Fiber, fiberPercent)
 		}
 	}
 }
