@@ -18,6 +18,7 @@ type User struct {
 	Age          int             `json:"age"`
 	Weight       float64         `json:"weight"`
 	Height       float64         `json:"height"`
+	Gender       string          `json:"gender"`
 	TargetMacros json.RawMessage `json:"target_macros"`
 }
 
@@ -146,10 +147,10 @@ func (db *DB) AddMeal(meal *Meal) error {
 
 func (db *DB) GetDailyMeals(userID int, date time.Time) ([]Meal, error) {
 	rows, err := db.DB.Query(`
-		SELECT id, user_id, meal_type, date, food_id, food_name, amount, proteins, carbs, fats, calories, fiber
+		SELECT id, user_id, meal_type, meal_date, food_id, food_name, amount, proteins, carbs, fats, calories, fiber
 		FROM meals
-		WHERE user_id = $1 AND DATE(date) = DATE($2)
-		ORDER BY date ASC
+		WHERE user_id = $1 AND DATE(meal_date) = DATE($2)
+		ORDER BY meal_date ASC
 	`, userID, date)
 	if err != nil {
 		return nil, err
@@ -182,7 +183,7 @@ func (db *DB) GetDailyTotals(userID int, date time.Time) (proteins, carbs, fats,
 			COALESCE(SUM(calories), 0) as total_calories,
 			COALESCE(SUM(fiber), 0) as total_fiber
 		FROM meals
-		WHERE user_id = $1 AND meal_date = $2`
+		WHERE user_id = $1 AND DATE(meal_date) = DATE($2)`
 
 	err = db.QueryRow(query, userID, date).Scan(&proteins, &carbs, &fats, &calories, &fiber)
 	return
@@ -316,4 +317,43 @@ func (db *DB) DeleteMealPlanItem(itemID int) error {
 	}
 	
 	return nil
+}
+
+func (db *DB) GetMealsBetweenDates(userID int, startDate, endDate time.Time) ([]Meal, error) {
+	rows, err := db.Query(`
+		SELECT id, user_id, meal_type, meal_date, food_id, food_name, amount, proteins, carbs, fats, calories, fiber
+		FROM meals
+		WHERE user_id = $1 AND meal_date >= $2 AND meal_date <= $3
+		ORDER BY meal_date ASC
+	`, userID, startDate, endDate)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+
+	var meals []Meal
+	for rows.Next() {
+		var meal Meal
+		err := rows.Scan(
+			&meal.ID, &meal.UserID, &meal.MealType, &meal.MealDate,
+			&meal.FoodID, &meal.FoodName, &meal.Amount,
+			&meal.Proteins, &meal.Carbs, &meal.Fats, &meal.Calories, &meal.Fiber,
+		)
+		if err != nil {
+			return nil, err
+		}
+		meals = append(meals, meal)
+	}
+
+	return meals, nil
+}
+
+func (db *DB) UpdateUser(user *User) error {
+	query := `
+		UPDATE users 
+		SET name = $1, age = $2, weight = $3, height = $4, gender = $5, target_macros = $6
+		WHERE id = $7`
+	
+	_, err := db.Exec(query, user.Name, user.Age, user.Weight, user.Height, user.Gender, user.TargetMacros, user.ID)
+	return err
 }

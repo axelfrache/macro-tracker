@@ -4,6 +4,7 @@ CREATE TABLE IF NOT EXISTS users (
     age INTEGER,
     weight FLOAT,
     height FLOAT,
+    gender VARCHAR(10),
     target_macros JSONB
 );
 

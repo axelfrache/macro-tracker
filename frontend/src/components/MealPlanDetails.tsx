@@ -25,7 +25,7 @@ import {
 } from '@mui/material';
 import DeleteIcon from '@mui/icons-material/Delete';
 import EditIcon from '@mui/icons-material/Edit';
-import { MealPlan, MealPlanItem } from '../types';
+import { MealPlan, MealPlanItem, Food } from '../types';
 import { addMealPlanItem, searchFood, deleteMealPlanItem, updateMealPlanItemMealType } from '../api';
 
 interface MealPlanDetailsProps {
@@ -36,8 +36,8 @@ interface MealPlanDetailsProps {
 export const MealPlanDetails = ({ mealPlan, onUpdate }: MealPlanDetailsProps) => {
   const [open, setOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
-  const [searchResults, setSearchResults] = useState<any[]>([]);
-  const [selectedFood, setSelectedFood] = useState<any | null>(null);
+  const [searchResults, setSearchResults] = useState<Food[]>([]);
+  const [selectedFood, setSelectedFood] = useState<Food | null>(null);
   const [mealType, setMealType] = useState('breakfast');
   const [amount, setAmount] = useState('100');
   const [searchLoading, setSearchLoading] = useState(false);
@@ -62,30 +62,19 @@ export const MealPlanDetails = ({ mealPlan, onUpdate }: MealPlanDetailsProps) =>
     setError(null);
     try {
       const response = await searchFood(searchQuery);
-      // Le backend renvoie directement un tableau d'aliments, pas un objet avec une propriété foods
-      if (response.data && Array.isArray(response.data)) {
-        setSearchResults(response.data);
-        console.log('Résultats de recherche:', response.data);
-        
-        if (response.data.length === 0) {
-          setError('Aucun aliment trouvé pour cette recherche. Essayez avec d\'autres termes.');
-        }
-      } else if (response.data && typeof response.data === 'object' && response.data.foods) {
-        // Au cas où le format de réponse changerait
-        setSearchResults(response.data.foods);
-        console.log('Résultats de recherche (format alternatif):', response.data.foods);
-        
-        if (response.data.foods.length === 0) {
-          setError('Aucun aliment trouvé pour cette recherche. Essayez avec d\'autres termes.');
-        }
-      } else {
-        console.error('Format de réponse inattendu:', response.data);
+      console.log('Réponse de l\'API:', response.data);
+      
+      if (!response.data || !Array.isArray(response.data) || response.data.length === 0) {
+        setError('Aucun aliment trouvé. Essayez avec d\'autres termes.');
         setSearchResults([]);
-        setError('Format de réponse inattendu. Veuillez réessayer.');
+        return;
       }
+      
+      // La réponse est désormais structurée avec les macros directement
+      setSearchResults(response.data);
+      
     } catch (error: any) {
       console.error('Erreur lors de la recherche:', error);
-      // Afficher un message d'erreur plus détaillé si disponible
       const errorMessage = error.response?.data?.error || error.message || 'Erreur inconnue';
       setError(`Impossible de rechercher des aliments: ${errorMessage}. Veuillez réessayer.`);
     } finally {
@@ -93,8 +82,9 @@ export const MealPlanDetails = ({ mealPlan, onUpdate }: MealPlanDetailsProps) =>
     }
   };
 
-  const handleSelectFood = (food: any) => {
+  const handleSelectFood = (food: Food) => {
     setSelectedFood(food);
+    console.log('Aliment sélectionné:', food);
   };
 
   const handleAddItem = async () => {
@@ -112,27 +102,26 @@ export const MealPlanDetails = ({ mealPlan, onUpdate }: MealPlanDetailsProps) =>
     setError(null);
     
     try {
-      const { fdcId, description, foodNutrients } = selectedFood;
+      const { fdcId, description, macros } = selectedFood;
       
-      const proteins = foodNutrients.find((n: any) => n.nutrientName === 'Protein')?.value || 0;
-      const carbs = foodNutrients.find((n: any) => n.nutrientName === 'Carbohydrate, by difference')?.value || 0;
-      const fats = foodNutrients.find((n: any) => n.nutrientName === 'Total lipid (fat)')?.value || 0;
-      const calories = foodNutrients.find((n: any) => n.nutrientName === 'Energy')?.value || 0;
-      const fiber = foodNutrients.find((n: any) => n.nutrientName === 'Fiber, total dietary')?.value || 0;
+      console.log('Ajout de l\'aliment avec macros:', macros);
       
-      const multiplier = amountValue / 100.0;
+      // Calculer les valeurs en fonction de la quantité
+      const factor = amountValue / 100;
       
       const newItem: Omit<MealPlanItem, 'id' | 'meal_plan_id'> = {
         meal_type: mealType,
         food_id: fdcId,
         food_name: description,
         amount: amountValue,
-        proteins: proteins * multiplier,
-        carbs: carbs * multiplier,
-        fats: fats * multiplier,
-        calories: calories * multiplier,
-        fiber: fiber * multiplier,
+        proteins: macros.proteins * factor,
+        carbs: macros.carbs * factor,
+        fats: macros.fats * factor,
+        calories: macros.calories * factor,
+        fiber: macros.fiber * factor,
       };
+      
+      console.log('Nouvel élément à ajouter:', newItem);
       
       setOpen(false);
       resetForm();
@@ -171,9 +160,9 @@ export const MealPlanDetails = ({ mealPlan, onUpdate }: MealPlanDetailsProps) =>
 
   const handleDeleteItem = async (itemId: number) => {
     try {
-      setDeletingItemId(itemId); // Indiquer quel élément est en cours de suppression
+      setDeletingItemId(itemId);
       await deleteMealPlanItem(itemId);
-      onUpdate(); // Rafraîchir les données après la suppression
+      onUpdate();
     } catch (error) {
       console.error('Erreur lors de la suppression de l\'élément:', error);
       setError('Impossible de supprimer l\'élément. Veuillez réessayer.');
@@ -212,10 +201,11 @@ export const MealPlanDetails = ({ mealPlan, onUpdate }: MealPlanDetailsProps) =>
         carbs: acc.carbs + item.carbs,
         fats: acc.fats + item.fats,
         calories: acc.calories + item.calories,
+        fiber: acc.fiber + item.fiber
       };
     },
-    { proteins: 0, carbs: 0, fats: 0, calories: 0 }
-  ) || { proteins: 0, carbs: 0, fats: 0, calories: 0 };
+    { proteins: 0, carbs: 0, fats: 0, calories: 0, fiber: 0 }
+  ) || { proteins: 0, carbs: 0, fats: 0, calories: 0, fiber: 0 };
 
   return (
     <Paper sx={{ p: 3, mt: 2, maxWidth: '100%', overflowX: 'auto' }}>
@@ -238,7 +228,7 @@ export const MealPlanDetails = ({ mealPlan, onUpdate }: MealPlanDetailsProps) =>
       
       <Box sx={{ mb: 4 }}>
         <Typography variant="h6" sx={{ mb: 2 }}>Macros totaux</Typography>
-        <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr 1fr', md: 'repeat(4, 1fr)' }, gap: 2 }}>
+        <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr 1fr', md: 'repeat(5, 1fr)' }, gap: 2 }}>
           <Paper 
             elevation={0} 
             sx={{ 
@@ -287,6 +277,23 @@ export const MealPlanDetails = ({ mealPlan, onUpdate }: MealPlanDetailsProps) =>
             </Typography>
             <Typography variant="body2" sx={{ color: 'warning.main' }}>
               Lipides
+            </Typography>
+          </Paper>
+          
+          <Paper 
+            elevation={0} 
+            sx={{ 
+              p: 2, 
+              bgcolor: 'rgba(156, 39, 176, 0.08)', 
+              border: '1px solid rgba(156, 39, 176, 0.2)',
+              borderRadius: 2
+            }}
+          >
+            <Typography variant="h6" sx={{ color: 'secondary.main', fontWeight: 'bold' }}>
+              {totalMacros.fiber.toFixed(1)}g
+            </Typography>
+            <Typography variant="body2" sx={{ color: 'secondary.main' }}>
+              Fibres
             </Typography>
           </Paper>
           
@@ -402,6 +409,10 @@ export const MealPlanDetails = ({ mealPlan, onUpdate }: MealPlanDetailsProps) =>
         PaperProps={{
           sx: { maxHeight: '80vh', overflowY: 'auto' }
         }}
+        disablePortal
+        keepMounted
+        disableEnforceFocus
+        disableAutoFocus
       >
         <DialogTitle>Ajouter un aliment</DialogTitle>
         <DialogContent>
@@ -455,7 +466,10 @@ export const MealPlanDetails = ({ mealPlan, onUpdate }: MealPlanDetailsProps) =>
                         }
                       }}
                     >
-                      <ListItemText primary={food.description} />
+                      <ListItemText 
+                        primary={food.description} 
+                        secondary={`Calories: ${food.macros.calories.toFixed(0)} kcal | Protéines: ${food.macros.proteins.toFixed(1)}g | Glucides: ${food.macros.carbs.toFixed(1)}g | Lipides: ${food.macros.fats.toFixed(1)}g`}
+                      />
                     </ListItem>
                   ))}
                 </List>
@@ -500,6 +514,36 @@ export const MealPlanDetails = ({ mealPlan, onUpdate }: MealPlanDetailsProps) =>
                   />
                 </Box>
               </Box>
+              
+              {selectedFood.macros && (
+                <Box sx={{ mt: 3 }}>
+                  <Typography variant="subtitle2" gutterBottom>
+                    Valeurs nutritionnelles pour 100g:
+                  </Typography>
+                  <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr 1fr', sm: 'repeat(4, 1fr)' }, gap: 1.5 }}>
+                    <Box sx={{ p: 1, bgcolor: 'rgba(25, 118, 210, 0.08)', borderRadius: 1 }}>
+                      <Typography variant="body2">
+                        Protéines: {selectedFood.macros.proteins.toFixed(1)}g
+                      </Typography>
+                    </Box>
+                    <Box sx={{ p: 1, bgcolor: 'rgba(46, 125, 50, 0.08)', borderRadius: 1 }}>
+                      <Typography variant="body2">
+                        Glucides: {selectedFood.macros.carbs.toFixed(1)}g
+                      </Typography>
+                    </Box>
+                    <Box sx={{ p: 1, bgcolor: 'rgba(237, 108, 2, 0.08)', borderRadius: 1 }}>
+                      <Typography variant="body2">
+                        Lipides: {selectedFood.macros.fats.toFixed(1)}g
+                      </Typography>
+                    </Box>
+                    <Box sx={{ p: 1, bgcolor: 'rgba(211, 47, 47, 0.08)', borderRadius: 1 }}>
+                      <Typography variant="body2">
+                        Calories: {selectedFood.macros.calories.toFixed(0)} kcal
+                      </Typography>
+                    </Box>
+                  </Box>
+                </Box>
+              )}
             </Box>
           )}
         </DialogContent>

@@ -5,6 +5,10 @@ import {
   TextField,
   Button,
   Box,
+  FormControl,
+  InputLabel,
+  Select,
+  MenuItem
 } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 
@@ -89,6 +93,22 @@ export const Profile = () => {
               disabled={!editing}
               onChange={(e) => setUser({ ...user, height: parseFloat(e.target.value) })}
             />
+          </Box>
+          <Box>
+            <FormControl fullWidth>
+              <InputLabel id="gender-label">Genre</InputLabel>
+              <Select
+                labelId="gender-label"
+                id="gender"
+                value={user.gender}
+                label="Genre"
+                disabled={!editing}
+                onChange={(e) => setUser({ ...user, gender: e.target.value as string })}
+              >
+                <MenuItem value="homme">Homme</MenuItem>
+                <MenuItem value="femme">Femme</MenuItem>
+              </Select>
+            </FormControl>
           </Box>
         </Box>
         <Box sx={{ mt: 3, display: 'flex', justifyContent: 'flex-end' }}>
